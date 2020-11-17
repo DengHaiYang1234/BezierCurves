@@ -20,6 +20,7 @@ public class BezierSplineInspector : Editor
     private const float handleSize = 0.04f;
     private const float pickSize = 0.06f;
     private int selectedIndex = -1;
+    private int curveModeIndex = 0;
 
 
     public override void OnInspectorGUI()
@@ -34,6 +35,25 @@ public class BezierSplineInspector : Editor
             Undo.RecordObject(spline, "Toggle Loop");
             EditorUtility.SetDirty(spline);
             spline.Loop = loop;
+        }
+
+        //添加曲线按钮    
+        if (GUILayout.Button("二阶曲线"))
+        {
+            Undo.RecordObject(spline, "2 Curve");
+            spline.SetCurveMode(CurveMode.二次曲线);
+            spline.Reset();
+
+            EditorUtility.SetDirty(spline);
+        }
+
+        if (GUILayout.Button("三阶曲线"))
+        {
+            Undo.RecordObject(spline, "3 Curve");
+            spline.SetCurveMode(CurveMode.三次曲线);
+            spline.Reset();
+
+            EditorUtility.SetDirty(spline);
         }
 
 
@@ -85,39 +105,92 @@ public class BezierSplineInspector : Editor
         //曲线起点
         Vector3 p0 = ShowPoint(0);
 
-        for (int i = 1; i < spline.ControlPointCount; i += 3)
+        if (spline.curveMode == CurveMode.二次曲线)
         {
-            //曲线调整点1
-            Vector3 p1 = ShowPoint(i);
-            //曲线调整点2
-            Vector3 p2 = ShowPoint(i + 1);
-            //曲线终点
-            Vector3 p3 = ShowPoint(i + 2);
+            for (int i = 1; i < spline.ControlPointCount; i += 2)
+            {
+                //曲线调整点1
+                Vector3 p1 = ShowPoint(i);
+                //曲线终点
+                Vector3 p2 = ShowPoint(i + 1);
 
-            Handles.color = Color.gray;
-            //控制点之间用直线表示
-            Handles.DrawLine(p0, p1);
-            Handles.DrawLine(p2, p3);
+                Handles.color = Color.gray;
 
-            //贝塞尔曲线API接口
-            Handles.DrawBezier(p0, p3, p1, p2, Color.white, null, 2f);
-            p0 = p3;
+                int lineStep = 100;//决定曲线平滑度
 
-            //实际贝塞尔曲线显示算法
-            // int lineStep = 50;//决定曲线平滑度
-            // for (int bezierPonitCount = 0; bezierPonitCount < lineStep; bezierPonitCount++)
-            // {
-            //     Handles.color = Color.white;
-            //     //曲线上的某个点
-            //     Vector3 p = spline.GetPoint(bezierPonitCount / (float)lineStep);
-            //     Handles.DrawLine(p0, p);
-            //     //线段的终点作为下一个点的起点
-            //     p0 = p;
-            // }
+                // ********* 二阶贝塞尔曲线匀速运动  ********* 
+                // //https://blog.csdn.net/auccy/article/details/100746760 参考,可能还需打磨
+                // float ax = p0.x - 2 * p1.x + p2.x;
+                // float ay = p0.y - 2 * p1.y + p2.y;
+                // float bx = 2 * p0.x - 2 * p0.x;
+                // float by = 2 * p0.y - 2 * p0.y;
+
+                // float A = 4 * (ax * ax + ay * ay);
+                // float B = 4 * (ax * bx + ay * by);
+                // float C = bx * bx + by * by;
+
+                // float total_length = spline.L(A, B, C, 1.0f);
+
+                // for (int stepIndex = 0; stepIndex <= lineStep; stepIndex++)
+                // {
+                //     float t = (float)stepIndex / (float)lineStep;
+                //     float l = t * total_length;
+                //     t = spline.InvertL(A, B, C, t, (int)l);
+                //     Vector3 p = spline.GetPoint(t);
+                //     Handles.color = Color.white;
+                //     Handles.DrawLine(p0, p);
+                //     p0 = p;
+                // }
+
+                //常规二阶曲线
+                for (int bezierPonitCount = 0; bezierPonitCount <= lineStep; bezierPonitCount++)
+                {
+                    //曲线上的某个点
+                    Vector3 p = spline.GetPoint(bezierPonitCount / (float)lineStep);
+                    Handles.color = Color.white;
+                    Handles.DrawLine(p0, p);
+                    //线段的终点作为下一个点的起点
+                    p0 = p;
+                }
+            }
         }
-        ShowDirections();
-    }
+        else if (spline.curveMode == CurveMode.三次曲线)
+        {
+            for (int i = 1; i < spline.ControlPointCount; i += 3)
+            {
+                //曲线调整点1
+                Vector3 p1 = ShowPoint(i);
+                //曲线调整点2
+                Vector3 p2 = ShowPoint(i + 1);
+                //曲线终点
+                Vector3 p3 = ShowPoint(i + 2);
 
+                Handles.color = Color.gray;
+                // //控制点之间用直线表示
+                Handles.DrawLine(p0, p1);
+                Handles.DrawLine(p2, p3);
+
+                //使用Unity画的曲线
+                //Handles.DrawBezier(p0, p3, p1, p2, Color.white, null, 2f);
+                // p0 = p3;
+
+                //实际贝塞尔曲线显示算法 TODO:首尾相连一根线的问题暂时没有解决，但不影响使用
+                int lineStep = 100;//决定曲线平滑度
+                Vector3 p = Vector3.zero;
+                for (int bezierPonitCount = 0; bezierPonitCount <= lineStep; bezierPonitCount++)
+                {
+                    Handles.color = Color.white;
+                    //曲线上的某个点
+                    p = spline.GetPoint(bezierPonitCount / (float)lineStep);
+                    Handles.DrawLine(p0, p);
+                    //线段的终点作为下一个点的起点
+                    p0 = p;
+                }
+            }
+            ShowDirections();
+        }
+    }
+    
     /// <summary>
     /// 显示曲线某个点的方向
     /// </summary>
@@ -141,7 +214,7 @@ public class BezierSplineInspector : Editor
         Color.yellow,
         Color.cyan
     };
-    
+
     /// <summary>
     /// 展示曲线控制点
     /// </summary>
