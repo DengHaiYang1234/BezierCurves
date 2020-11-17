@@ -33,29 +33,6 @@ public static class Bezier
     /// <returns></returns>
     private static float CombinationFunc(int n, int m)
     {
-        // if (m == 0 || m == 1)
-        //     return 1;
-
-        // int n_Factorial = 1;
-        // int nm = n - m;
-        // int nm_Factorial = 1;
-
-        // for (int k = n; k < 1; k++)
-        // {
-        //     n_Factorial += n_Factorial * k;
-        //     for (int j = k - 1; j >= 1; j--)
-        //     {
-                
-        //     }
-        // }
-
-        // for (int k = 2; k <= nm; k++)
-        // {
-        //     nm_Factorial += nm_Factorial * k;
-        // }
-
-        // return n_Factorial / nm_Factorial;
-
         float[] result = new float[n + 1];
         for (int i = 1; i <= n; i++)
         {
